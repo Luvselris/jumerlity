@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Admin Dashboard ♡ jumerlity</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-pink: #fff5f8;
+      --card-white: #ffffff;
+      --pink-soft: #ffd1dc;
+      --pink-main: #ff8da1;
+      --pink-accent: #ff6b8b;
+      --pink-glow: rgba(255, 141, 161, 0.25);
+      --border-pink: #ffe0e9;
+      --text-dark: #4a3e42;
+      --text-muted: #8c7d82;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Quicksand', 'Mitr', sans-serif; }
+    body {
+      background: radial-gradient(circle at top, #fff0f5 0%, var(--bg-pink) 60%, #ffe4ec 100%);
+      color: var(--text-dark);
+      min-height: 100vh;
+      padding: 20px 14px 80px;
+      display: flex;
+      justify-content: center;
+    }
+    .container { width: 100%; max-width: 480px; }
+    
+    .card {
+      background: #ffffff;
+      border-radius: 26px;
+      padding: 22px 18px;
+      box-shadow: 0 8px 25px var(--pink-glow);
+      border: 1.5px solid var(--border-pink);
+      margin-bottom: 16px;
+    }
+    .title { font-size: 18px; font-weight: 700; color: var(--pink-accent); text-align: center; margin-bottom: 16px; }
+    .field-group { margin-bottom: 14px; }
+    .field-label { font-size: 13px; font-weight: 600; color: var(--text-dark); margin-bottom: 6px; display: block; }
+    .input-box, .textarea-box {
+      width: 100%; padding: 11px 14px; border-radius: 16px; border: 1.5px solid var(--border-pink);
+      outline: none; font-size: 13.5px; background: #fffcfd; color: var(--text-dark); transition: all 0.2s;
+    }
+    .input-box:focus, .textarea-box:focus { border-color: var(--pink-main); box-shadow: 0 0 0 3px var(--pink-glow); }
+    .textarea-box { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+    .file-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 14px; background: #fff0f5; border: 1.5px dashed var(--pink-main);
+      border-radius: 14px; color: var(--pink-accent); font-size: 12.5px; font-weight: 600;
+      cursor: pointer; width: 100%; margin-bottom: 6px;
+    }
+
+    .btn {
+      width: 100%; padding: 13px; border-radius: 20px; border: none; font-size: 14.5px; font-weight: 700;
+      cursor: pointer; background: linear-gradient(135deg, #ffaec0, var(--pink-accent)); color: #fff; margin-top: 6px;
+      box-shadow: 0 6px 16px var(--pink-glow); transition: opacity 0.2s;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-secondary { background: #fff; color: var(--pink-accent); border: 1.5px solid var(--border-pink); margin-top: 10px; box-shadow: none; }
+    
+    .btn-add {
+      background: #fff0f5; color: var(--pink-accent); border: 1.5px dashed var(--pink-main);
+      font-size: 13px; padding: 10px; border-radius: 14px; margin-top: 8px; width: 100%; cursor: pointer; font-weight: 600;
+    }
+
+    /* กล่องลิงก์ & โพสต์ */
+    .item-card {
+      background: #fffafa; border: 1.5px solid var(--border-pink); border-radius: 18px;
+      padding: 14px; margin-bottom: 12px; position: relative;
+    }
+    .item-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .del-btn {
+      background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5;
+      padding: 4px 10px; border-radius: 10px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+    }
+
+    .status-msg {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #333; color: #fff; padding: 10px 20px; border-radius: 20px;
+      font-size: 13px; z-index: 999999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- ล็อกอินแอดมิน: ใช้ label email & password -->
+  <div class="card" id="loginBox">
+    <div class="title">เข้าสู่ระบบแอดมิน ♡ jumerlity</div>
+    <div class="field-group">
+      <label class="field-label">email</label>
+      <input type="email" id="loginEmail" class="input-box" placeholder="email">
+    </div>
+    <div class="field-group">
+      <label class="field-label">password</label>
+      <input type="password" id="loginPassword" class="input-box" placeholder="password">
+    </div>
+    <button type="button" class="btn" onclick="handleLogin()">เข้าสู่ระบบ</button>
+  </div>
+
+  <!-- แดชบอร์ด -->
+  <div id="dashboardBox" class="hidden">
+    
+    <!-- 1. ข้อมูลร้านค้า -->
+    <div class="card">
+      <div class="title">ข้อมูลโปรไฟล์และแบนเนอร์</div>
+      <div class="field-group">
+        <label class="field-label">ชื่อร้าน</label>
+        <input type="text" id="storeName" class="input-box" placeholder="jumerlity ♡">
+      </div>
+      <div class="field-group">
+        <label class="field-label">คำอธิบาย Bio</label>
+        <textarea id="storeBio" class="textarea-box" placeholder="เขียนข้อความแนะนำร้าน..."></textarea>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">แบนเนอร์ (รองรับทั้งไฟล์ภาพ และลิงก์ GIF เคลื่อนไหว)</label>
+        <label class="file-btn">เลือกรูปภาพจากเครื่อง <input type="file" accept="image/*" style="display:none;" onchange="uploadDirectImage(event, 'bannerImg')"></label>
+        <input type="text" id="bannerImg" class="input-box" placeholder="หรือวางลิงก์รูป/GIF เช่น https://...">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">รูปโปรไฟล์</label>
+        <label class="file-btn">เลือกรูปจากเครื่อง <input type="file" accept="image/*" style="display:none;" onchange="uploadDirectImage(event, 'profileImg')"></label>
+        <input type="text" id="profileImg" class="input-box" placeholder="หรือวางลิงก์รูปโปรไฟล์">
+      </div>
+    </div>
+
+    <!-- 2. จัดการปุ่มลิงก์ติดต่อ -->
+    <div class="card">
+      <div class="title">จัดการปุ่มลิงก์ติดต่อ (เพิ่ม/ลบ/แก้ไขได้เอง)</div>
+      <div id="linksManager"></div>
+      <button type="button" class="btn-add" onclick="addNewLink()">+ เพิ่มปุ่มลิงก์ใหม่</button>
+    </div>
+
+    <!-- 3. จัดการโพสต์ผลงาน (ไม่จำกัดจำนวน & ภาพชัด 100%) -->
+    <div class="card">
+      <div class="title">จัดการโพสต์ผลงาน (ภาพชัด 100%)</div>
+      <div class="field-group">
+        <label class="field-label">ชื่อหัวข้อส่วนผลงาน</label>
+        <input type="text" id="galleryHeading" class="input-box" placeholder="✨ example (แตะเพื่อดูรายละเอียด)">
+      </div>
+
+      <div id="galleryManager"></div>
+      <button type="button" class="btn-add" onclick="addNewPost()">+ เพิ่มโพสต์ผลงานใหม่</button>
+    </div>
+
+    <!-- 4. เพลง -->
+    <div class="card">
+      <div class="title">เพลงประกอบ</div>
+      <div class="field-group">
+        <label class="field-label">URL เพลง (.mp3)</label>
+        <input type="text" id="musicUrl" class="input-box">
+      </div>
+    </div>
+
+    <!-- 5. บัญชีและความปลอดภัยแอดมิน -->
+    <div class="card">
+      <div class="title">บัญชีและความปลอดภัยแอดมิน</div>
+      <div class="field-group">
+        <label class="field-label">อีเมลแอดมิน</label>
+        <input type="email" id="adminEmailInput" class="input-box">
+      </div>
+      <div class="field-group">
+        <label class="field-label">รหัสผ่านใหม่</label>
+        <input type="password" id="newAdminPassword" class="input-box" placeholder="ปล่อยว่างหากไม่ต้องการเปลี่ยน">
+      </div>
+    </div>
+
+    <button type="button" class="btn" id="saveBtn" onclick="saveAllConfig()">☁️ บันทึกขึ้นระบบทันที</button>
+    <button type="button" class="btn btn-secondary" onclick="logout()">ออกจากระบบ</button>
+  </div>
+</div>
+
+<div class="status-msg" id="statusMsg"></div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCpAGDSy1NRgmLV_g7qJrCpwOhU9MrfQyY",
+    authDomain: "benefitie.firebaseapp.com",
+    projectId: "benefitie",
+    storageBucket: "benefitie.firebasestorage.app",
+    messagingSenderId: "270365672215",
+    appId: "1:270365672215:web:230d1491091e26ce83ed52"
+  };
+
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const DB_SITE = "jumerlity_site";
+  const DB_GALLERY = "jumerlity_gallery";
+
+  let currentAdminEmail = "rakfaennn54@gmail.com";
+  let currentAdminPass = "jumerlity54";
+
+  let customLinksData = [
+    { title: "🩹 Line", url: "https://line.me" },
+    { title: "🪷 Instagram", url: "https://instagram.com" }
+  ];
+
+  let galleryPostsData = [];
+
+  // โหลดรหัสผ่านล่าสุด
+  db.collection(DB_SITE).doc("config").get().then(doc => {
+    if (doc.exists) {
+      const d = doc.data();
+      if (d.adminEmail) currentAdminEmail = d.adminEmail;
+      if (d.adminPass) currentAdminPass = d.adminPass;
+    }
+  });
+
+  function showStatus(text, isError = false) {
+    const el = document.getElementById("statusMsg");
+    el.textContent = text;
+    el.style.background = isError ? "#ef4444" : "#10b981";
+    el.style.display = "block";
+    setTimeout(() => { el.style.display = "none"; }, 3000);
+  }
+
+  function handleLogin() {
+    const e = document.getElementById("loginEmail").value.trim();
+    const p = document.getElementById("loginPassword").value.trim();
+    if (e === currentAdminEmail && p === currentAdminPass) {
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("dashboardBox").classList.remove("hidden");
+      loadData();
+    } else {
+      alert("email หรือ password ไม่ถูกต้องค่ะ");
+    }
+  }
+
+  // ปรับคุณภาพระดับสูงสุด 1080p ไม่ลดความชัดของรูป
+  function compressHDImage(file, maxDimension = 1080, quality = 0.92) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadDirectImage(event, targetInputId) {
+    const file = event.target.files[0];
+    if (!file) return;
+    showStatus("กำลังโหลดรูปภาพ...");
+    try {
+      const base64 = await compressHDImage(file, 1080, 0.92);
+      document.getElementById(targetInputId).value = base64;
+      showStatus("เลือกรูปภาพสำเร็จ (ภาพชัด 100%)");
+    } catch (err) {
+      showStatus("เกิดข้อผิดพลาดในการโหลดรูป", true);
+    }
+  }
+
+  async function loadData() {
+    showStatus("กำลังดึงข้อมูลล่าสุด...");
+    try {
+      const doc = await db.collection(DB_SITE).doc("config").get();
+      const d = doc.exists ? doc.data() : {};
+      
+      document.getElementById("storeName").value = d.storeName || "jumerlity ♡";
+      document.getElementById("storeBio").value = d.bio || "ยินดีต้อนรับสู่ร้าน jumerlity ♡";
+      document.getElementById("bannerImg").value = d.bannerImg || "https://c.tenor.com/qvn5EduVCSDAAAAC/tenor.gif";
+      document.getElementById("profileImg").value = d.profileImg || "https://i.ibb.co/mCZ2x6pK/IMG-3558.jpg";
+      document.getElementById("galleryHeading").value = d.galleryHeading || "✨ example (แตะเพื่อดูรายละเอียด)";
+      document.getElementById("musicUrl").value = d.musicUrl || "https://file.garden/asG8Gt-rqWIpi3II/%E0%B8%AD%E0%B9%8A%E0%B8%B0%E0%B8%9B%E0%B9%88%E0%B8%B2%E0%B8%A7%20(Yes%20it%20)%20-%20The%2038%20Years%20Ago%E3%80%8Cofficial%20lyrics%E3%80%8D.mp3";
+      document.getElementById("adminEmailInput").value = currentAdminEmail;
+
+      if (d.customLinks && Array.isArray(d.customLinks)) {
+        customLinksData = d.customLinks;
+      }
+      renderLinksManager();
+
+      // ดึงโพสต์ผลงานจากคอลเลกชันย่อย
+      const postsSnap = await db.collection(DB_GALLERY).orderBy("order", "asc").get();
+      galleryPostsData = [];
+      postsSnap.forEach(pDoc => {
+        galleryPostsData.push({ id: pDoc.id, ...pDoc.data() });
+      });
+      renderGalleryManager();
+
+      showStatus("โหลดข้อมูลสำเร็จ");
+    } catch (err) {
+      showStatus("ดึงข้อมูลไม่สำเร็จ: " + err.message, true);
+    }
+  }
+
+  // จัดการปุ่มลิงก์
+  function renderLinksManager() {
+    const box = document.getElementById("linksManager");
+    box.innerHTML = "";
+    if (customLinksData.length === 0) {
+      box.innerHTML = `<p style="font-size:12px; color:var(--text-muted); padding:8px 0;">ยังไม่มีปุ่มลิงก์ กดเพิ่มใหม่ได้เลยค่ะ</p>`;
+      return;
+    }
+    customLinksData.forEach((item, idx) => {
+      const wrap = document.createElement("div");
+      wrap.className = "item-card";
+      wrap.innerHTML = `
+        <div class="item-header">
+          <span style="font-weight:700; font-size:13px; color:var(--pink-accent);">ปุ่มที่ ${idx+1}</span>
+          <button type="button" class="del-btn" onclick="removeLink(${idx})">ลบปุ่มนี้ ✕</button>
+        </div>
+        <div class="field-group">
+          <label class="field-label">ชื่อปุ่ม</label>
+          <input type="text" class="input-box" value="${item.title || ''}" placeholder="ชื่อปุ่ม เช่น LINE, IG..." oninput="customLinksData[${idx}].title = this.value">
+        </div>
+        <div class="field-group">
+          <label class="field-label">ลิงก์ URL ช่องทาง</label>
+          <input type="text" class="input-box" value="${item.url || ''}" placeholder="https://..." oninput="customLinksData[${idx}].url = this.value">
+        </div>
+      `;
+      box.appendChild(wrap);
+    });
+  }
+
+  function addNewLink() {
+    customLinksData.push({ title: "ช่องทางติดต่อ", url: "https://" });
+    renderLinksManager();
+  }
+
+  function removeLink(idx) {
+    customLinksData.splice(idx, 1);
+    renderLinksManager();
+  }
+
+  // จัดการโพสต์ผลงาน
+  function renderGalleryManager() {
+    const box = document.getElementById("galleryManager");
+    box.innerHTML = "";
+    if (galleryPostsData.length === 0) {
+      box.innerHTML = `<p style="font-size:12px; color:var(--text-muted); padding:8px 0;">ยังไม่มีโพสต์ผลงาน กดเพิ่มใหม่ได้เลยค่ะ</p>`;
+      return;
+    }
+    galleryPostsData.forEach((post, idx) => {
+      const wrap = document.createElement("div");
+      wrap.className = "item-card";
+      wrap.innerHTML = `
+        <div class="item-header">
+          <span style="font-weight:700; font-size:13px; color:var(--pink-accent);">ผลงานชิ้นที่ ${idx+1}</span>
+          <button type="button" class="del-btn" onclick="removePost(${idx})">ลบโพสต์นี้ ✕</button>
+        </div>
+        <div class="field-group">
+          <label class="field-label">รูปภาพผลงาน (ภาพชัดระดับ 1080p ไม่แตก)</label>
+          <label class="file-btn">เลือกรูปผลงานจากเครื่อง <input type="file" accept="image/*" style="display:none;" onchange="uploadDirectPost(event, ${idx})"></label>
+          <input type="text" class="input-box" id="post-img-${idx}" value="${post.image || ''}" placeholder="หรือวางลิงก์รูป" oninput="galleryPostsData[${idx}].image = this.value" style="margin-bottom:6px;">
+        </div>
+        <div class="field-group">
+          <label class="field-label">ชื่อผลงาน / หัวข้อ</label>
+          <input type="text" class="input-box" value="${post.title || ''}" placeholder="ชื่อผลงาน" oninput="galleryPostsData[${idx}].title = this.value">
+        </div>
+        <div class="field-group">
+          <label class="field-label">คำอธิบายในรูป</label>
+          <textarea class="textarea-box" placeholder="คำอธิบายรายละเอียดผลงาน..." oninput="galleryPostsData[${idx}].desc = this.value">${post.desc || ''}</textarea>
+        </div>
+      `;
+      box.appendChild(wrap);
+    });
+  }
+
+  function addNewPost() {
+    galleryPostsData.push({
+      title: "",
+      desc: "",
+      image: ""
+    });
+    renderGalleryManager();
+  }
+
+  async function removePost(idx) {
+    const item = galleryPostsData[idx];
+    if (confirm("ต้องการลบโพสต์ผลงานนี้ใช่ไหมคะ?")) {
+      if (item.id) {
+        await db.collection(DB_GALLERY).doc(item.id).delete();
+      }
+      galleryPostsData.splice(idx, 1);
+      renderGalleryManager();
+    }
+  }
+
+  async function uploadDirectPost(event, idx) {
+    const file = event.target.files[0];
+    if (!file) return;
+    showStatus("กำลังแปลงไฟล์ภาพความละเอียดสูง...");
+    try {
+      const base64 = await compressHDImage(file, 1080, 0.92);
+      galleryPostsData[idx].image = base64;
+      document.getElementById(`post-img-${idx}`).value = base64;
+      showStatus("ใส่รูปสำเร็จ (ภาพชัด 100%)");
+    } catch (err) {
+      showStatus("แปลงรูปไม่สำเร็จ", true);
+    }
+  }
+
+  async function saveAllConfig() {
+    const btn = document.getElementById("saveBtn");
+    btn.disabled = true;
+    btn.textContent = "กำลังบันทึกข้อมูล...";
+    showStatus("กำลังอัปเดตข้อมูลขึ้นระบบ...");
+
+    const emailVal = document.getElementById("adminEmailInput").value.trim();
+    if (emailVal) currentAdminEmail = emailVal;
+
+    const payload = {
+      storeName: document.getElementById("storeName").value.trim(),
+      bio: document.getElementById("storeBio").value.trim(),
+      bannerImg: document.getElementById("bannerImg").value.trim(),
+      profileImg: document.getElementById("profileImg").value.trim(),
+      galleryHeading: document.getElementById("galleryHeading").value.trim(),
+      customLinks: customLinksData,
+      musicUrl: document.getElementById("musicUrl").value.trim(),
+      adminEmail: currentAdminEmail,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    const newPass = document.getElementById("newAdminPassword").value.trim();
+    if (newPass) {
+      payload.adminPass = newPass;
+      currentAdminPass = newPass;
+    }
+
+    try {
+      await db.collection(DB_SITE).doc("config").set(payload, { merge: true });
+
+      // บันทึกโพสต์ผลงานแยกทีละ Document (ไม่จำกัดจำนวน & ไม่ติด Limit)
+      const existingSnap = await db.collection(DB_GALLERY).get();
+      const batch = db.batch();
+      existingSnap.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+
+      for (let i = 0; i < galleryPostsData.length; i++) {
+        const p = galleryPostsData[i];
+        if (p.image || p.title) {
+          await db.collection(DB_GALLERY).add({
+            order: i,
+            title: p.title || "",
+            desc: p.desc || "",
+            image: p.image || ""
+          });
+        }
+      }
+
+      showStatus("บันทึกข้อมูลทั้งหมดสำเร็จแล้ว");
+      alert("บันทึกข้อมูลสำเร็จเรียบร้อยแล้วค่ะ ♡");
+      document.getElementById("newAdminPassword").value = "";
+    } catch (err) {
+      showStatus("บันทึกไม่สำเร็จ: " + err.message, true);
+      alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "☁️ บันทึกขึ้นระบบทันที";
+    }
+  }
+
+  function logout() {
+    document.getElementById("dashboardBox").classList.add("hidden");
+    document.getElementById("loginBox").classList.remove("hidden");
+  }
+</script>
+</body>
+</html>
